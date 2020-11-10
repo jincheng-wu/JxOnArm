@@ -1,0 +1,98 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: git-clone-lighthouse
+spec:
+  type: git
+  params:
+    - name: revision
+      value: v0.0.738
+    - name: url
+      value: https://github.com/jenkins-x/lighthouse.git
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: lighthouse-image-out
+spec:
+  type: image
+  params:
+    - name: url
+      value: 213.146.155.118:5500/lighthouse
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-lighthouse
+spec:
+  resources:
+    inputs:
+      - name: task-input-lighthouse-1
+        type: git
+    outputs:
+      - name: task-out-lighthouse-1
+        type: image
+  steps:
+    - name: pwd
+      image: ubuntu:18.04
+      script: |
+        #!/usr/bin/env bash
+        pwd
+        ls -al
+    - name: go-build
+      image: golang:1.15
+      env:
+        - name: "PATH"
+          value: "/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        - name: "GOPATH"
+          value: "/go"
+      script: |
+        #!/usr/bin/env bash
+        pwd
+        cd /workspace/task-input-lighthouse-1
+        ls /workspace/task-input-lighthouse-1
+        make build 
+        ls /workspace
+        ls /workspace/task-input-lighthouse-1/bin
+
+    - name: build-lighthouse-image-and-push1
+      image: kaniko-executable:arm64
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=/workspace/task-input-lighthouse-1/Dockerfile.webhooks
+        - --insecure-registry=213.146.155.118:5000           
+        - --registry-mirror=213.146.155.118:5000        
+        - --destination=213.146.155.118:5000/lighthouse-webhooks:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5000
+        - --context=dir:///workspace/task-input-lighthouse-1/
+        
+    - name: build-lighthouse-image-and-push2
+      image: kaniko-executable:arm64
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=/workspace/task-input-lighthouse-1/Dockerfile.tektoncontroller
+        - --insecure-registry=213.146.155.118:5000  
+        - --registry-mirror=213.146.155.118:5000        
+        - --destination=213.146.155.118:5000/lighthouse-tektoncontroller:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5000    
+        - --context=dir:///workspace/task-input-lighthouse-1/
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: taskrun-lighthouse
+spec:
+  serviceAccountName: tutorial-service
+  taskRef:
+    name: task-lighthouse
+  resources:
+    inputs:
+      - name: task-input-lighthouse-1
+        resourceRef:
+          name: git-clone-lighthouse
+    outputs:
+      - name: task-out-lighthouse-1
+        resourceRef:
+          name: lighthouse-image-out
