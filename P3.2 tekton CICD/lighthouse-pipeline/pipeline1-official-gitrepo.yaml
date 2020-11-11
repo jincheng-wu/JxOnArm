@@ -1,0 +1,166 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: git-clone-lighthouse
+spec:
+  type: git
+  params:
+    - name: revision
+      value: v0.0.738
+    - name: url
+      value: https://github.com/jenkins-x/lighthouse.git
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: lighthouse-image-out
+spec:
+  type: image
+  params:
+    - name: url
+      value: 213.146.155.118:5500/lighthouse
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-lighthouse
+spec:
+  resources:
+    inputs:
+      - name: task-input-lighthouse-1
+        type: git
+    outputs:
+      - name: task-out-lighthouse-1
+        type: image
+  steps:        
+    - name: go-build
+      image: golang:1.15
+      env:
+        - name: "PATH"
+          value: "/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        - name: "GOPATH"
+          value: "/go"
+      script: |
+        #!/usr/bin/env bash
+        pwd
+        cd /workspace/task-input-lighthouse-1
+        ls /workspace/task-input-lighthouse-1
+        make build
+        
+    - name: build-lighthouse-webhooks-image-and-push
+      image: kaniko-executable:arm64
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/Dockerfile.webhooks
+        - --insecure-registry=213.146.155.118:5500
+        - --registry-mirror=213.146.155.118:5500
+        - --destination=213.146.155.118:5500/lighthouse-webhooks2:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5500
+        - --context=dir:///$(resources.inputs.task-input-lighthouse-1.path)
+        
+    - name: build-lighthouse-tektoncontroller-image-and-push2
+      image: kaniko-executable:arm64
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/Dockerfile.tektoncontroller
+        - --insecure-registry=213.146.155.118:5500
+        - --registry-mirror=213.146.155.118:5500
+        - --destination=213.146.155.118:5500/lighthouse-tektoncontroller2:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5500
+        - --context=dir:///$(resources.inputs.task-input-lighthouse-1.path)
+        
+    - name: build-lighthouse-keeper-image-and-push3
+      image: kaniko-executable:arm64
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/Dockerfile.keeper
+        - --insecure-registry=213.146.155.118:5500
+        - --registry-mirror=213.146.155.118:5500
+        - --destination=213.146.155.118:5500/lighthouse-keeper2:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5500
+        - --context=dir:///$(resources.inputs.task-input-lighthouse-1.path)
+
+    - name: build-lighthouse-gcjobs-image-and-push4
+      image: kaniko-executable:arm64
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/Dockerfile.gcJobs
+        - --insecure-registry=213.146.155.118:5500
+        - --registry-mirror=213.146.155.118:5500
+        - --destination=213.146.155.118:5500/lighthouse-gcjobs:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5500
+        - --context=dir:///$(resources.inputs.task-input-lighthouse-1.path)
+
+    - name: build-lighthouse-foghorn-image-and-push5
+      image: kaniko-executable:arm64
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/Dockerfile.foghorn
+        - --insecure-registry=213.146.155.118:5500
+        - --registry-mirror=213.146.155.118:5500
+        - --destination=213.146.155.118:5500/lighthouse-foghorn:0.0.738
+        - --skip-tls-verify-registry=213.146.155.118:5500
+        - --context=dir:///$(resources.inputs.task-input-lighthouse-1.path)        
+    
+  volumes:
+    - name: kaniko-docker-secret
+      hostPath:
+        path: /home/ubuntu/1111-pipeline/
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-lighthouse
+spec:
+  resources:
+    - name: lighthouse-pipeline-input-1
+      type: git
+    - name: lighthouse-pipeline-out-1
+      type: image
+  tasks:
+    - name: step1
+      taskRef:
+        name: task-lighthouse
+      resources:
+        inputs:
+          - name: task-input-lighthouse-1
+            resource: lighthouse-pipeline-input-1
+        outputs:
+          - name: task-out-lighthouse-1
+            resource: lighthouse-pipeline-out-1
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipelinerun-lighthouse
+spec:
+  serviceAccountName: tutorial-service
+  pipelineRef:
+    name: pipeline-lighthouse
+  resources:
+    - name: lighthouse-pipeline-input-1
+      resourceRef:
+        name: git-clone-lighthouse
+    - name: lighthouse-pipeline-out-1
+      resourceRef:
+        name: lighthouse-image-out
