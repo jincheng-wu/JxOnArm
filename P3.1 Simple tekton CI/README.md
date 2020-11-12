@@ -12,3 +12,9 @@ P3.1是一个对于lighthouse对接tekton的简单测试。
 
 https://github.com/jenkins-x/lighthouse/blob/master/docs/install_lighthouse_with_tekton.md
 
+## 结果
+
+完成对接后，在代码仓库设置lighthouse ingress的webhook。然后更改lighthouse config仓库或k8s configmap的config，plugins。
+
+完成以上操作，对代码仓库进行对应操作，即可触发pipeline，完成测试
+
