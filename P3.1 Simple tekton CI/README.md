@@ -1,6 +1,6 @@
 # P3.1 Simple tekton CI
 
-P3.1是一个对于lighthouse对接tekton的简单测试。
+P3.1是一个对于lighthouse对接tekton的简单测试，测试为更改代码仓，自动触发pipeline。完成编译golang helloworld，制作镜像，发布到私人仓库中这一系列流程。
 
 ## 操作流程
 
@@ -12,9 +12,12 @@ P3.1是一个对于lighthouse对接tekton的简单测试。
 
 https://github.com/jenkins-x/lighthouse/blob/master/docs/install_lighthouse_with_tekton.md
 
-## 结果
+## 测试过程
 
-完成对接后，在代码仓库设置lighthouse ingress的webhook。然后更改lighthouse config仓库或k8s configmap的config，plugins。
+编写pipeline，流程为拉取代码，编译代码，使用kaniko制作镜像并且发布到私人仓库。
 
-完成以上操作，对代码仓库进行对应操作，即可触发pipeline，完成测试
+完成配置对接后，在golang代码仓库设置webhook，地址为lighthouse ingress，然后更改lighthouse config仓库或k8s configmap的config，plugins。
+
+此后对代码仓库进行对应操作，即可触发pipeline，完成测试
+
 
