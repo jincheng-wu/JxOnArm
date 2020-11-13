@@ -1,6 +1,6 @@
 # P3.2 tekton CICD
 
-P3.2使用了 Lighthouse, Tekton, Kaniko，nexus组成了一套pipeline，目标为用tekton自身部署自身。
+P3.2使用了 GitHub, Lighthouse, Tekton, Kaniko，nexus组成了一套pipeline，目标为用tekton自身部署自身。
 
 ## github
 
