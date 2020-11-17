@@ -42,3 +42,4 @@ tide:
     repos:
     - yyk757/lighthouse-config
     - yyk757/test-hello
+    - yyunk/lighthouse
