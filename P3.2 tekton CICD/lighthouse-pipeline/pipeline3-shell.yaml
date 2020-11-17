@@ -1,1 +1,112 @@
+# This pipeline is based on David's method.
+# To use this pipeline, all binary files should be compiled in bin folder and all dockerfiles shoud be named like Dockerfile.xxx
+# Furthermore, We changed the kaniko's entrypoint to bash to run shell script in it.
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: git-clone-lighthouse
+spec:
+  type: git
+  params:
+    - name: revision
+      value: modify-0.0.748
+    - name: url
+      value: https://github.com/yyunk/lighthouse.git
 ---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: lighthouse-image-out
+spec:
+  type: image
+  params:
+    - name: url
+      value: 213.146.155.118:5500/lighthouse
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task-lighthouse-auto
+spec:
+  resources:
+    inputs:
+      - name: task-input-lighthouse-1
+        type: git
+    outputs:
+      - name: task-out-lighthouse-1
+        type: image
+  steps:
+    - name: go-build
+      image: golang:1.15
+      env:
+        - name: "PATH"
+          value: "/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        - name: "GOPATH"
+          value: "/go"
+      script: |
+        #!/usr/bin/env bash
+        pwd
+        cd $(resources.inputs.task-input-lighthouse-1.path)
+        make build
+
+    - name: build-and-push-images
+      image: kaniko:bash
+      volumeMounts:
+        - name: kaniko-docker-secret
+          mountPath: /kaniko/.docker/
+      script: |
+        #!/bin/bash
+        for i in `ls $(resources.inputs.task-input-lighthouse-1.path) |grep Dockerfile`
+        do
+        imagename=`echo  $i|awk -F "." '{print $2}'`
+        /kaniko/executor --dockerfile=$(resources.inputs.task-input-lighthouse-1.path)/$i \
+         --insecure-registry=213.146.155.118:5500 \
+         --registry-mirror=213.146.155.118:5500 \
+         --skip-tls-verify-registry=213.146.155.118:5500 \
+         --context=dir:///$(resources.inputs.task-input-lighthouse-1.path) \
+         --destination=213.146.155.118:5500/${imagename,,}:0.0.748 \
+         --skip-tls-verify \
+         --skip-tls-verify-pull
+        done
+  volumes:
+    - name: kaniko-docker-secret
+      hostPath:
+        path: /home/ubuntu/docker-config/
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-lighthouse-auto
+spec:
+  resources:
+    - name: lighthouse-pipeline-input-1
+      type: git
+    - name: lighthouse-pipeline-out-1
+      type: image
+  tasks:
+    - name: step1
+      taskRef:
+        name: task-lighthouse-auto
+      resources:
+        inputs:
+          - name: task-input-lighthouse-1
+            resource: lighthouse-pipeline-input-1
+        outputs:
+          - name: task-out-lighthouse-1
+            resource: lighthouse-pipeline-out-1
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipelinerun-lighthouse-auto
+spec:
+  serviceAccountName: tutorial-service
+  pipelineRef:
+    name: pipeline-lighthouse-auto
+  resources:
+    - name: lighthouse-pipeline-input-1
+      resourceRef:
+        name: git-clone-lighthouse
+    - name: lighthouse-pipeline-out-1
+      resourceRef:
+        name: lighthouse-image-out
