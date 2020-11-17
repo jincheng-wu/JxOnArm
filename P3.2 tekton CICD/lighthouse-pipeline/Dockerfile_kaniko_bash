@@ -3,7 +3,7 @@ RUN mkdir /kaniko
 COPY executor /kaniko/executor
 ENV HOME /root
 ENV USER /root
-ENV PATH /usr/local/bin:/kaniko
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/kaniko
 ENV DOCKER_CONFIG /kaniko/.docker/
 WORKDIR /workspace
 ENTRYPOINT ["/bin/bash"]
