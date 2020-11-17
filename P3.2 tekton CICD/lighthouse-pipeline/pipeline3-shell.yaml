@@ -1,6 +1,6 @@
-# This pipeline is based on David's method.
-# To use this pipeline, all binary files should be compiled in bin folder and all dockerfiles shoud be named like Dockerfile.xxx
-# Furthermore, We changed the kaniko's entrypoint to bash to run shell script in it.
+# 1.This pipeline is based on David's method.
+# 2.We changed the kaniko's entrypoint to bash to run shell script in it.
+# 3.To use this pipeline, all binary files should be compiled in bin folder and all dockerfiles shoud be named like Dockerfile.xxx
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
 metadata:
