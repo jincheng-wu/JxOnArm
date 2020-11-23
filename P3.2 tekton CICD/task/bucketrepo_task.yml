@@ -64,6 +64,16 @@ spec:
          --skip-tls-verify \
          --skip-tls-verify-pull
         done
+    - name: deploy-bucketrepo
+      image: kubectl-helm:v1
+      volumeMounts:
+        - name: kube-config
+          mountPath: /root/.kube
+      script: |
+        #!/usr/bin/env bash
+        cd $(resources.inputs.task-input-bucketrepo.path)/charts
+        helm upgrade bucketrepo5 bucketrepo --install --namespace test5 --values myvalues.yaml
+
 
   volumes:
     - name: kaniko-docker-secret
