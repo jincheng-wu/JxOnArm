@@ -41,7 +41,7 @@ spec:
         cp $(resources.inputs.task-input-bucketrepo.path)$binary_path $storage_path/$binary_path_in_dockerfile
         cp $(resources.inputs.task-input-bucketrepo.path)$dockerfile_path $storage_path/Dockerfile.$image_name
         done
-        cp config/ $binary_path_in_dockerfile
+        cp -r config/ $storage_path
 
     - name: build-and-push-images
       image: kaniko:bash
