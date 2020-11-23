@@ -63,6 +63,16 @@ spec:
          --skip-tls-verify \
          --skip-tls-verify-pull
         done
+    - name: deploy-tekton 
+      image: kubectl-helm:v1
+      volumeMounts:
+        - name: kube-config
+          mountPath: /root/.kube
+      script: |
+        #!/usr/bin/env bash
+        git clone https://github.com/yyunk/tekton.git -b modify-3.2-CICD
+        cd tekton/
+        helm upgrade tekton5 tekton  --install --namespace test5 --values myvalues.yaml
 
   volumes:
     - name: kaniko-docker-secret
